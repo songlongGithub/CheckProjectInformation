@@ -3,7 +3,8 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QTabWidget, QWidget,
     QFormLayout, QLineEdit, QPushButton, QTableWidget,
     QTableWidgetItem, QDialogButtonBox, QHBoxLayout,
-    QAbstractItemView, QHeaderView, QLabel, QGroupBox
+    QAbstractItemView, QHeaderView, QLabel, QGroupBox,
+    QMessageBox, QFileDialog
 )
 from PyQt6.QtCore import QSettings
 from typing import Any, List
@@ -14,6 +15,12 @@ try:
 except Exception:
     MODERN_STYLE = ""  # 兜底，避免样式文件缺失导致报错
     EDITABLE_TABLE_STYLE = ""
+
+# 导入规则管理器
+try:
+    from rule_manager import get_rule_manager
+except Exception:
+    get_rule_manager = None
 
 
 class SettingsDialog(QDialog):
@@ -67,6 +74,32 @@ class SettingsDialog(QDialog):
         self.setup_gender_tab()
 
         root.addWidget(self.tabs)
+
+        # === 规则管理按钮区 ===
+        rule_mgmt_layout = QHBoxLayout()
+        rule_mgmt_layout.setSpacing(10)
+        
+        export_csv_btn = QPushButton("📤 导出为CSV")
+        export_csv_btn.setObjectName("secondaryButton")
+        export_csv_btn.setToolTip("将当前规则导出为CSV文件，方便用Excel编辑")
+        export_csv_btn.clicked.connect(self.export_rules_to_csv)
+        
+        import_csv_btn = QPushButton("📥 从CSV导入")
+        import_csv_btn.setObjectName("secondaryButton")
+        import_csv_btn.setToolTip("从CSV文件导入规则")
+        import_csv_btn.clicked.connect(self.import_rules_from_csv)
+        
+        update_online_btn = QPushButton("🔄 在线更新规则")
+        update_online_btn.setObjectName("secondaryButton")
+        update_online_btn.setToolTip("从云端获取最新的规则库（需要网络）")
+        update_online_btn.clicked.connect(self.update_rules_online)
+        
+        rule_mgmt_layout.addWidget(export_csv_btn)
+        rule_mgmt_layout.addWidget(import_csv_btn)
+        rule_mgmt_layout.addWidget(update_online_btn)
+        rule_mgmt_layout.addStretch()
+        
+        root.addLayout(rule_mgmt_layout)
 
         # === 底部按钮 ===
         button_box = QDialogButtonBox(
@@ -169,56 +202,17 @@ class SettingsDialog(QDialog):
 
     # ---------- 数据加载/保存 ----------
     def load_settings(self):
-        # 默认规则
-        default_aliases = [
-            ['静脉采血', '采血'],
-            ['眼科常规', '眼科检查'],
-            ['营养B餐', '标准早餐'],
-            ['碳十三呼气检查', 'C13'],
-            ['碳十四呼吸检测', 'C14'],
-            ['乳腺彩超', '乳腺彩色超声'],
-            ['女性盆腔彩超', '女性彩色盆腔超声'],
-            ['男性盆腔彩超', '男性彩色盆腔超声'],
-            ['常规心电图', '十二导联心电图'],
-            ['腹部超声', '腹部彩色超声'],
-            ['耳鼻喉常规', '耳鼻咽喉检查'],
-            ['甲状腺彩超', '甲状腺彩色超声'],
-            ['新女性肿瘤12项(H)', '新肿瘤12项女(H)'],
-            ['新肿瘤12项男(H)', '新男性肿瘤12项(H)'],
-            ['肺部CT', '胸部CT'],
-            ['HPV-25', 'HPV多型检测'],
-            ['血流变', '血流变(新)'],
-            ['肝功全套', '肝功十三项'],
-            ['肝功13项(A)', '肝功十三项'],
-            ['女性七项肿瘤标志物(H)', '七项肿瘤标志物（女性）（H）'],
-            ['男性八项肿瘤标志物(H)', '七项肿瘤标志物（男性）（H）'],
-            ['血清胰岛素(INS)(A)', '血清胰岛素'],
-            ['血清C测定(A)', '血清C肽测定'],
-            ['动脉硬化', '全身动脉硬化检测'],
-            ['宫颈涂片', '宫颈刮片'],
-            ['胆红素三项', '胆红素组合(三项)'],
-            ['空腹血糖(GLU)', '空腹血糖'],
-            ['人体成份', '人体成分分析'],
-            ['C-反应蛋白', '反应蛋白(CRP)'],
-            ['载脂蛋白A', '载脂蛋白-A1'],
-            ['心肌酶2项', '心肌酶两项'],
-            ['肠癌检测', '居家便隐血检测（前台）'],
-            ['碳十三呼气检查', 'C13呼气试验'],
-            ['HPV多型检测', '七项肿瘤标志物(女性)(H)'],
-            ['女性项肿瘤标志物(H)', '七项肿瘤标志物(女性)(H)'],
-            ['HRA健康功能风险评估系统', 'HRA'],
-            ['胃功能3项', '胃功能3项(H)'],
-            ['胃泌素17', '胃泌素17(H)'],
-        ]
-        default_renames = [
-            ['一般检查', '身高体重,血压,放射项目不出胶片,超声项目不出片'],
-            ['妇科检查', 'SELF,白带常规'],
-            ['裂隙灯、眼底', '眼底检查,裂隙灯'],
-            ['肝功十一项', '肝功四项,胆红素组合(三项),蛋白组合(四项)'],
-        ]
-        default_gender_renames = [
-            ['外科检查', '外科检查（男）', '外科检查（女）']
-        ]
+        # 使用规则管理器加载规则（支持外部文件）
+        if get_rule_manager is not None:
+            try:
+                rule_mgr = get_rule_manager()
+                default_aliases, default_renames, default_gender_renames = rule_mgr.load_rules()
+            except Exception as e:
+                print(f"规则管理器加载失败，使用内置规则: {e}")
+                default_aliases, default_renames, default_gender_renames = self._get_fallback_rules()
+        else:
+            # 兜底：使用内置规则
+            default_aliases, default_renames, default_gender_renames = self._get_fallback_rules()
 
         # 兼容从 QSettings 读取为字符串/None 的情况
         aliases = self._ensure_defaults(
@@ -240,6 +234,26 @@ class SettingsDialog(QDialog):
         self.populate_table(self.alias_table, aliases)
         self.populate_table(self.rename_table, renames)
         self.populate_table(self.gender_table, gender_renames)
+    
+    def _get_fallback_rules(self):
+        """内置兜底规则（最小化）"""
+        default_aliases = [
+            ['静脉采血', '采血'],
+            ['眼科常规', '眼科检查'],
+            ['营养B餐', '标准早餐'],
+            ['碳十三呼气检查', 'C13'],
+            ['碳十四呼吸检测', 'C14'],
+            ['乳腺彩超', '乳腺彩色超声'],
+            ['常规心电图', '十二导联心电图'],
+            ['腹部超声', '腹部彩色超声'],
+        ]
+        default_renames = [
+            ['一般检查', '身高体重,血压,放射项目不出胶片,超声项目不出片'],
+        ]
+        default_gender_renames = [
+            ['外科检查', '外科检查（男）', '外科检查（女）']
+        ]
+        return default_aliases, default_renames, default_gender_renames
 
     def _load_list(self, key: str, default: List[List[str]]) -> List[List[str]]:
         """从 QSettings 读取列表；若为字符串/None，做容错处理"""
@@ -327,3 +341,82 @@ class SettingsDialog(QDialog):
                 row_data.append(item.text().strip() if item else "")
             data.append(row_data)
         return data
+    
+    # ---------- 规则管理功能 ----------
+    def export_rules_to_csv(self):
+        """导出规则为CSV文件"""
+        if get_rule_manager is None:
+            QMessageBox.warning(self, "功能不可用", "规则管理器模块未正确加载")
+            return
+        
+        folder = QFileDialog.getExistingDirectory(self, "选择导出目录")
+        if folder:
+            try:
+                rule_mgr = get_rule_manager()
+                # 先保存当前表格数据到规则管理器
+                rule_mgr.save_rules(
+                    self.get_table_data(self.alias_table),
+                    self.get_table_data(self.rename_table),
+                    self.get_table_data(self.gender_table)
+                )
+                # 导出为CSV
+                if rule_mgr.export_rules_to_csv(folder):
+                    QMessageBox.information(self, "导出成功", 
+                        f"规则已导出到:\n{folder}\n\n包含文件:\n"
+                        "- aliases.csv (别名规则)\n"
+                        "- renames.csv (重命名规则)\n"
+                        "- gender_renames.csv (性别规则)")
+                else:
+                    QMessageBox.warning(self, "导出失败", "导出过程中发生错误")
+            except Exception as e:
+                QMessageBox.critical(self, "导出错误", f"导出失败: {str(e)}")
+    
+    def import_rules_from_csv(self):
+        """从CSV文件导入规则"""
+        if get_rule_manager is None:
+            QMessageBox.warning(self, "功能不可用", "规则管理器模块未正确加载")
+            return
+        
+        folder = QFileDialog.getExistingDirectory(self, "选择包含CSV文件的目录")
+        if folder:
+            try:
+                rule_mgr = get_rule_manager()
+                if rule_mgr.import_rules_from_csv(folder):
+                    # 重新加载规则到表格
+                    self.load_settings()
+                    QMessageBox.information(self, "导入成功", 
+                        "规则已从CSV文件导入并更新到当前表格\n"
+                        "点击【保存】按钮应用这些规则")
+                else:
+                    QMessageBox.warning(self, "导入失败", "导入过程中发生错误")
+            except Exception as e:
+                QMessageBox.critical(self, "导入错误", f"导入失败: {str(e)}")
+    
+    def update_rules_online(self):
+        """从在线源更新规则"""
+        if get_rule_manager is None:
+            QMessageBox.warning(self, "功能不可用", "规则管理器模块未正确加载")
+            return
+        
+        # GitHub 规则库 URL（使用 Raw 文件地址）
+        # 格式: https://raw.githubusercontent.com/<用户名>/<仓库名>/<分支名>/<文件路径>
+        online_url = "https://raw.githubusercontent.com/songlongGithub/CheckProjectInformation/main/default_rules.json"
+        
+        reply = QMessageBox.question(self, "在线更新", 
+            "确定要从云端更新规则库吗？\n\n"
+            "这将覆盖当前的默认规则（用户自定义规则不受影响）\n"
+            "需要网络连接才能完成更新",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                rule_mgr = get_rule_manager()
+                if rule_mgr.update_rules_online(online_url):
+                    self.load_settings()
+                    QMessageBox.information(self, "更新成功", "规则库已更新到最新版本")
+                else:
+                    QMessageBox.information(self, "无需更新", "当前规则已是最新版本")
+            except Exception as e:
+                QMessageBox.warning(self, "更新失败", 
+                    f"无法连接到规则服务器\n\n错误信息: {str(e)}\n\n"
+                    "请检查网络连接或联系管理员")
