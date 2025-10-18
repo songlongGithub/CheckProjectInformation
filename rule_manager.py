@@ -157,23 +157,48 @@ class RuleManager:
         """
         try:
             import requests
+            
+            # 重新读取本地版本（避免使用缓存的版本号）
+            if self.local_rules_file.exists():
+                try:
+                    with open(self.local_rules_file, 'r', encoding='utf-8') as f:
+                        local_data = json.load(f)
+                        self.version = local_data.get("version", "1.0.0")
+                except:
+                    pass
+            
+            logger.info(f"正在从云端获取规则: {url}")
+            
             response = requests.get(url, timeout=10)
             response.raise_for_status()
+            logger.info(f"云端规则获取成功，响应大小: {len(response.content)} 字节")
             
             online_rules = response.json()
             
-            # 检查版本号，只有更新的版本才覆盖
+            # 打印云端规则信息
             online_version = online_rules.get("version", "0.0.0")
+            online_updated = online_rules.get("last_updated", "未知")
+            aliases_count = len(online_rules.get("aliases", []))
+            renames_count = len(online_rules.get("renames", []))
+            gender_renames_count = len(online_rules.get("gender_renames", []))
+            
+            logger.info(f"云端规则信息 - 版本: {online_version}, 更新时间: {online_updated}")
+            logger.info(f"云端规则统计 - 别名: {aliases_count}条, 重命名: {renames_count}条, 性别重命名: {gender_renames_count}条")
+            logger.info(f"本地当前版本: {self.version}")
+            
+            # 检查版本号，只有更新的版本才覆盖
             if self._compare_version(online_version, self.version) > 0:
+                logger.info(f"云端版本 {online_version} 高于本地版本 {self.version}，开始更新...")
+                
                 with open(self.local_rules_file, 'w', encoding='utf-8') as f:
                     json.dump(online_rules, f, ensure_ascii=False, indent=2)
                 
                 self.rules_data = online_rules
                 self.version = online_version
-                logger.info(f"规则已更新到版本 {online_version}")
+                logger.info(f"✅ 规则已成功更新到版本 {online_version}")
                 return True
             else:
-                logger.info("当前规则已是最新版本")
+                logger.info(f"当前本地版本 {self.version} 已是最新，无需更新")
                 return False
                 
         except Exception as e:
