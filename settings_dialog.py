@@ -400,7 +400,7 @@ class SettingsDialog(QDialog):
         
         # GitHub 规则库 URL（使用 Raw 文件地址）
         # 格式: https://raw.githubusercontent.com/<用户名>/<仓库名>/<分支名>/<文件路径>
-        online_url = "https://github.com/songlongGithub/CheckProjectInformation/blob/main/default_rules.json"
+        online_url = "https://raw.githubusercontent.com/songlongGithub/CheckProjectInformation/main/default_rules.json"
         
         reply = QMessageBox.question(self, "在线更新", 
             "确定要从云端更新规则库吗？\n\n"
