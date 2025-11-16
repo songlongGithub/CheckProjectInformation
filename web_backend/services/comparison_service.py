@@ -3,14 +3,18 @@
 """
 from __future__ import annotations
 
+import logging
 import os
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import logic
 from excel_parser import MedicalExamParser
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -149,6 +153,7 @@ def process_images_with_ocr(
         raise RuntimeError("获取百度OCR Access Token失败，请检查密钥配置")
 
     report: List[Dict[str, Any]] = []
+    stage_totals = {"ocr_request": 0.0, "json_parse": 0.0, "comparison": 0.0}
     for idx, image in enumerate(images, start=1):
         item_result: Dict[str, Any] = {
             "image_name": image.name,
@@ -157,22 +162,40 @@ def process_images_with_ocr(
             "schemes": [],
             "errors": [],
         }
+        stage_spent: Dict[str, float] = {}
         try:
+            start = time.perf_counter()
             ocr_json = logic.get_ocr_result_from_baidu(access_token, image.path)
+            stage_spent["ocr_request"] = time.perf_counter() - start
             if not ocr_json:
                 item_result["errors"].append("OCR无响应")
             else:
+                start = time.perf_counter()
                 schemes = logic.extract_data_from_ocr_json(ocr_json)
+                stage_spent["json_parse"] = time.perf_counter() - start
                 if not schemes:
                     item_result["errors"].append("未识别到方案或项目")
                 else:
+                    start = time.perf_counter()
                     comparisons = evaluate_ocr_payload(schemes, scheme_lookup, alias_map)
+                    stage_spent["comparison"] = time.perf_counter() - start
                     item_result["schemes"] = comparisons
         except Exception as exc:  # noqa: BLE001
             item_result["errors"].append(str(exc))
+        else:
+            for key, value in stage_spent.items():
+                stage_totals[key] = stage_totals.get(key, 0.0) + value
+            if stage_spent:
+                dominant = max(stage_spent.items(), key=lambda item: item[1])
+                detail = ", ".join(f"{k}={v:.2f}s" for k, v in stage_spent.items())
+                logger.info("OCR耗时 image=%s [%s] | 最慢阶段=%s %.2fs", image.name, detail, dominant[0], dominant[1])
         report.append(item_result)
         if progress_callback:
             progress_callback([*report])
+    if any(stage_totals.values()):
+        slowest = max(stage_totals.items(), key=lambda item: item[1])
+        total_detail = ", ".join(f"{k}={v:.2f}s" for k, v in stage_totals.items())
+        logger.info("OCR总耗时统计 [%s] | 累计最慢阶段=%s %.2fs", total_detail, slowest[0], slowest[1])
     return report
 
 
