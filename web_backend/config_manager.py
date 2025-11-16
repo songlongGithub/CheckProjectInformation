@@ -48,14 +48,26 @@ DEFAULT_OCR: Dict[str, str] = {
     "secret_key": os.getenv("MEC_DEFAULT_BAIDU_SECRET_KEY", "DEMO_BAIDU_SECRET"),
 }
 
+DEFAULT_USERS = [
+    {
+        "username": "admin",
+        "password_hash": "S6tBiVb3pA2DPkwgQ8pwsA==:Dc+sTV4lIcy7sSQOtZUTXZ4PBWllYzN+6DNTIk3bBjU=",
+    },
+    {
+        "username": "renyanan",
+        "password_hash": "UP1qgtheZv02Jn1yejy9zw==:cHzxEEWR8pkSneYi4HNYwIyT1pSbOXRlTz4CJlZPd3E=",
+    },
+]
+
 DEFAULT_CONFIG: Dict[str, Any] = {
     "users": [
         {
-            "username": "admin",
-            "password_hash": "Xz2vuK7w8IUBCq8Pf7nXbQ==:z81sWfMoWxYauQH4jshXmgBYq8m73EJ6PaU3JnjV5rY=",
+            "username": user["username"],
+            "password_hash": user["password_hash"],
             "rules": deepcopy(DEFAULT_RULES),
             "ocr": deepcopy(DEFAULT_OCR),
         }
+        for user in DEFAULT_USERS
     ]
 }
 

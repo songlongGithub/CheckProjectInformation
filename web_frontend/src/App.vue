@@ -153,7 +153,12 @@ async function fetchOcrSettings() {
 
 async function fetchResults() {
   const res = await api.get("/api/results");
-  ocrResults.value = res.data.results || [];
+  const ordered = (res.data.results || []).slice().sort((a, b) => {
+    const ai = a.index || 0;
+    const bi = b.index || 0;
+    return ai - bi;
+  });
+  ocrResults.value = ordered;
   updateOcrProgressFromResults();
 }
 
@@ -423,7 +428,7 @@ onMounted(() => {
         </label>
       </div>
       <button class="primary-btn" @click="login">登录</button>
-      <p class="tip">默认账号 admin / ChangeMe123!，请登录后立即修改。</p>
+      <p class="tip">请联系管理员获取账号。</p>
     </section>
 
     <div v-else>
