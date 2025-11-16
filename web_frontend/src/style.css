@@ -1,0 +1,15 @@
+:root {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.4;
+  font-weight: 400;
+  color: #1f2937;
+  background-color: #f4f6f9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
