@@ -72,7 +72,33 @@ npm install
 npm run dev
 ```
 
-> 默认登录账号：`admin` / `ChangeMe123!`，登录后请在“系统配置 → 登录账号”中立刻修改。
+- 预置账号：
+  - `admin / jkl446041`
+  - `renyanan / 931128`
+
+> 生产环境请立刻修改密码，并仅向授权成员下发账号。
+
+### 本地调试流程
+
+1. **后端 / FastAPI**
+   ```bash
+   cd CheckProjectInformation
+   python -m venv venv && source venv/bin/activate
+   pip install -r requirements.txt
+   uvicorn web_backend.app:app --reload --host 0.0.0.0 --port 8001
+   ```
+2. **前端 / Vue 3**
+   ```bash
+   cd web_frontend
+   npm install
+   npm run dev
+   ```
+   默认监听 `http://localhost:5173`，通过 Vite 代理访问后端的 `http://127.0.0.1:8001`。
+3. **桌面端** 如需联调 PyQt6，在激活虚拟环境后执行 `python main.py`。
+4. **常见检查**
+   - `python3 test_ocr_parsing.py`：快速验证 OCR 解析逻辑；
+   - `curl http://127.0.0.1:8001/api/health`：确认后端存活；
+   - Chrome DevTools Network 中留意 401/500 等异常响应。
 
 ## 📖 使用说明
 
@@ -152,9 +178,25 @@ build_windows.bat
 - [快速开始指南](QUICK_BUILD.md)
 - [完整打包指南](BUILD_GUIDE.md)
 
-## ☁️ Docker & 云端部署
+## ☁️ 云端部署
 
-使用随仓库提供的 `Dockerfile` 可以快速构建集成了 FastAPI 后端与 Vue 前端的镜像，适合在腾讯云宝塔 Linux 上以 Docker 方式运行：
+### 宝塔/腾讯云发版建议
+
+1. **准备环境**
+   ```bash
+   git clone git@github.com:songlongGithub/CheckProjectInformation.git /root/projects/CheckProjectInformation
+   cd /root/projects/CheckProjectInformation
+   python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+   cd web_frontend && npm install && npm run build
+   ```
+2. **Systemd 服务**（`/etc/systemd/system/mec.service`）调用仓库根的 `run_backend.sh`，保持 uvicorn 常驻并开机自启。
+3. **一键部署脚本**：服务器上执行 `bash redeploy.sh` 会自动 `git reset --hard origin/main`、重装前端依赖、`npm run build` 并 `systemctl restart mec.service`。推荐发版前先 `git pull`。
+4. **Nginx/宝塔站点**：将静态目录指向 `web_frontend/dist`，再把 `/api`、`/auth` 等接口反向代理到 `http://127.0.0.1:8001`，并在安全组/宝塔防火墙放行 80/443（或需要的端口）。
+5. **验证**：`systemctl status mec.service`、`curl http://127.0.0.1:8001/api/health`、浏览器访问域名/IP 确认流程可用。
+
+### Docker 方案
+
+使用随仓库提供的 `Dockerfile` 可以快速构建集成了 FastAPI 后端与 Vue 前端的镜像：
 
 ```bash
 # 构建镜像
