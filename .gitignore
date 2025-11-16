@@ -17,6 +17,12 @@ dist/
 *.egg-info/
 .eggs/
 
+# Frontend build artifacts
+web_frontend/node_modules/
+web_frontend/dist/
+web_frontend/.vite/
+web_frontend/.cache/
+
 # PyInstaller
 *.spec.bak
 
@@ -58,4 +64,3 @@ dmypy.json
 # Temporary files
 *.tmp
 *.temp
-
