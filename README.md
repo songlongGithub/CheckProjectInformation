@@ -19,6 +19,7 @@
 - ⚙️ **规则配置**：支持自定义项目别名、重命名和性别特定规则
 - 🎨 **现代界面**：基于 PyQt6 的美观现代化用户界面
 - 📦 **一键打包**：支持 macOS 和 Windows 平台的独立应用打包
+- 🌐 **Web 控制台**：新增 FastAPI + Vue 网页版，支持登录、规则管理、Excel/OCR 上传与比对
 
 ## 📸 应用截图
 
@@ -58,6 +59,20 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
+
+### 运行 Web 控制台
+
+```bash
+# 启动 FastAPI 后端
+python -m uvicorn web_backend.app:app --reload
+
+# 启动前端调试服务
+cd web_frontend
+npm install
+npm run dev
+```
+
+> 默认登录账号：`admin` / `ChangeMe123!`，登录后请在“系统配置 → 登录账号”中立刻修改。
 
 ## 📖 使用说明
 
@@ -107,6 +122,9 @@ CheckProjectInformation/
 ├── MedicalExamChecker.spec # PyInstaller 配置
 ├── build_mac.sh            # macOS 打包脚本
 ├── build_windows.bat       # Windows 打包脚本
+├── web_backend/            # FastAPI Web 服务
+├── web_frontend/           # Vue 3 前端项目
+├── Dockerfile              # 一体化 Docker 构建文件
 └── resources/              # 应用资源文件
     └── icons/              # 应用图标
 ```
@@ -133,6 +151,22 @@ build_windows.bat
 详细打包说明请参考：
 - [快速开始指南](QUICK_BUILD.md)
 - [完整打包指南](BUILD_GUIDE.md)
+
+## ☁️ Docker & 云端部署
+
+使用随仓库提供的 `Dockerfile` 可以快速构建集成了 FastAPI 后端与 Vue 前端的镜像，适合在腾讯云宝塔 Linux 上以 Docker 方式运行：
+
+```bash
+# 构建镜像
+docker build -t medical-exam-web .
+
+# 运行容器（暴露 8000 端口，可按需映射到 80/443）
+docker run -d --name medical-exam-web -p 8000:8000 medical-exam-web
+```
+
+容器启动后访问 `http://<服务器IP>:8000/` 即可打开网页端。生产环境中建议通过宝塔配置 Nginx 反向代理，将域名和 HTTPS 证书指向该容器端口。
+
+配置与账号信息保存在 `web_backend/web_settings.json`，也可以通过网页“系统配置”页面在线修改；若以 Docker 运行，请为该文件映射数据卷以便持久化。
 
 ## 🛠️ 技术栈
 
@@ -209,4 +243,3 @@ songlongGithub
 **如果这个项目对您有帮助，请给个 ⭐️ Star 支持一下！**
 
 </div>
-

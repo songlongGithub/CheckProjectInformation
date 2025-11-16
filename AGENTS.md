@@ -17,3 +17,5 @@ The Git history is empty, so please adopt a Conventional Commits style (`feat:`,
 
 ## Configuration & Security Notes
 OCR credentials are loaded through `QSettings` (see `MainWindow.processing_thread`), so avoid hardcoding API keys in source files or sample data. When capturing logs, keep them out of version control unless they are sanitized exemplars. Document any new environment variables or settings dialog keys in `QUICK_BUILD.md` or a follow-up configuration note.
+
+# 要使用中文回复
