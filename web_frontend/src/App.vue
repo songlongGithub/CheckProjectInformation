@@ -240,6 +240,11 @@ async function processOcr() {
     return;
   }
   ocrProcessing.value = true;
+  try {
+    await api.post("/api/results/clear");
+  } catch (error) {
+    console.warn("清空历史结果失败", error);
+  }
   ocrResults.value = [];
   ocrProgress.active = true;
   ocrProgress.current = 0;

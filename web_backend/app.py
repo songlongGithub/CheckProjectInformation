@@ -266,6 +266,12 @@ def latest_results(username: str = Depends(get_current_username)) -> ResultsResp
     return ResultsResponse(results=state.latest_results)
 
 
+@app.post("/api/results/clear")
+def clear_results(username: str = Depends(get_current_username)) -> dict:
+    session_manager.update_results(username, [])
+    return {"message": "ok"}
+
+
 frontend_dist = Path(__file__).resolve().parent.parent / "web_frontend" / "dist"
 if frontend_dist.exists():
     app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
