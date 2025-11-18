@@ -64,6 +64,7 @@ def parse_excel_file(excel_file: Path, rename_rules: List[List[str]], gender_rul
             if not items:
                 continue
             scheme_title = f"{sheet_name} - {display_category}"
+            logger.info("Excel scheme parsed: %s (%d 项)", scheme_title, len(items))
             scheme_names.append(scheme_title)
             scheme_catalog.append(
                 {
@@ -106,8 +107,10 @@ def evaluate_ocr_payload(
     results: List[Dict[str, Any]] = []
     for ocr_title, ocr_items in ocr_payload:
         display_title = ocr_title or "未识别标题"
+        logger.info("Comparing OCR title '%s' (items=%d)", display_title, len(ocr_items))
         matched = logic.find_best_match(ocr_title, scheme_names) if ocr_title else None
         if not matched:
+            logger.warning("No match for OCR title '%s'.", display_title)
             results.append(
                 {
                     "ocr_title": display_title,
@@ -120,6 +123,7 @@ def evaluate_ocr_payload(
             )
             continue
         excel_items = scheme_lookup.get(matched, [])
+        logger.info("Matched OCR title '%s' -> '%s' (%d 项)", display_title, matched, len(excel_items))
         comparison = logic.generate_comparison_report(excel_items, ocr_items, alias_map)
         stats = _build_stats(comparison)
         status = "matched_perfect" if stats["missing"] == 0 and stats["extra"] == 0 else "matched_imperfect"

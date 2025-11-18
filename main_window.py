@@ -200,6 +200,12 @@ class MainWindow(QMainWindow):
                     sorted_projects = sorted(unique_project_list, key=lambda x: x['row_index'])
                     simple_data[scheme_name][category_name] = [p['full_name'] for p in sorted_projects]
             self.excel_data = simple_data
+            print("Log: Excel scheme combinations and items:")
+            for scheme_name, categories in self.excel_data.items():
+                for category_name, items in categories.items():
+                    print(f"Log:   -> {scheme_name} - {category_name} ({len(items)} 项)")
+                    for item in items:
+                        print(f"Log:        • {item}")
             self.populate_scheme_table()
             self.update_status(f"已加载Excel '{os.path.basename(path)}' 并解析出 {self.results_table.rowCount()} 个方案", "success")
         except Exception as e:
@@ -220,6 +226,10 @@ class MainWindow(QMainWindow):
             self.results_table.setItem(i, 0, QTableWidgetItem(name))
             self.results_table.setItem(i, 2, QTableWidgetItem(STATUS_ICON["ready"]))
             self.scheme_to_row_map[name] = i
+        if full_scheme_names:
+            print("Log: Excel schemes recognized:")
+            for name in full_scheme_names:
+                print(f"Log:   -> {name}")
 
     def load_images(self):
         paths, _ = QFileDialog.getOpenFileNames(self, "选择图片文件", "", "Image Files (*.png *.jpg *.jpeg *.bmp)")

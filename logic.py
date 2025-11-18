@@ -7,6 +7,48 @@ from typing import Dict, List, Optional, Tuple, Set
 import requests
 from fuzzywuzzy import fuzz, process
 
+_NOISE_PARENTHESES_KEYWORDS = (
+    "不可",
+    "禁止",
+    "替检",
+    "补检",
+    "紫单",
+    "见名单",
+    "名单",
+    "复检",
+)
+
+
+def _remove_noise_parentheses(text: str) -> str:
+    """去除括号中仅包含提示/限制信息的部分，保留性别信息"""
+    if not text:
+        return ""
+
+    def should_remove(segment: str) -> bool:
+        has_noise = any(keyword in segment for keyword in _NOISE_PARENTHESES_KEYWORDS)
+        has_category = any(flag in segment for flag in ("男", "女", "未婚", "已婚"))
+        return has_noise and not has_category
+
+    def repl(match: re.Match) -> str:
+        segment = match.group(0)
+        return "" if should_remove(segment) else segment
+
+    cleaned = re.sub(r"[（\(][^（）\(\)]*[）\)]", repl, text)
+
+    # 处理缺少右括号的尾部片段，如“（紫单不可替...”
+    tail_pattern = re.compile(r"[（\(][^（）\(\)]*$")
+    while True:
+        tail_match = tail_pattern.search(cleaned)
+        if not tail_match:
+            break
+        segment = tail_match.group(0)
+        if should_remove(segment):
+            cleaned = cleaned[: tail_match.start()]
+        else:
+            break
+
+    return cleaned.strip()
+
 # --- [函数 1] 组件化精确匹配的“净化器” (无变化) ---
 def normalize_for_precise_matching(text: str) -> str:
     """
@@ -59,7 +101,8 @@ def find_best_match(ocr_title: str, scheme_names: List[str]) -> Optional[str]:
     if not ocr_title or not scheme_names:
         return None
     
-    processed_ocr_title = re.sub(r'[（\(]紫单.*', '', ocr_title)
+    processed_ocr_title = _remove_noise_parentheses(ocr_title)
+    print(f"Log: Matching OCR title '{processed_ocr_title or ocr_title}' against {len(scheme_names)} Excel scheme(s).")
     
     componentized_ocr_title = normalize_for_precise_matching(processed_ocr_title)
     ocr_keyword = _extract_gender_marital_info(componentized_ocr_title)
@@ -105,6 +148,7 @@ def find_best_match(ocr_title: str, scheme_names: List[str]) -> Optional[str]:
         # 找到了匹配的“核心”名称，现在需要反向查找它对应的原始Excel方案名
         for candidate in candidate_schemes:
             if candidate['core'] == best_match_core:
+                print(f"Log: Matched OCR title '{ocr_title}' -> '{candidate['original']}' (score={score}).")
                 return candidate['original']
         
     print(f"Log: No precise match found for '{ocr_title}'. Best core candidate '{best_match_core}' had score {score}.")
@@ -140,6 +184,8 @@ def get_ocr_result_from_baidu(access_token: str, image_path: str) -> Optional[di
 
 def _is_single_scheme_format(words: List[str]) -> bool:
     """检测是否为单方案结构"""
+    if any(("订单编码" in (w or "")) or ("分组编码" in (w or "")) for w in words):
+        return True
     has_group_label = any("分组名称" in w for w in words if w)
     has_custom_section = any("自定义选项" in w for w in words if w)
     if not has_group_label and has_custom_section:

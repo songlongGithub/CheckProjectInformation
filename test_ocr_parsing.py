@@ -88,6 +88,20 @@ scheme_noise_title_payload = {
     ]
 }
 
+order_code_single_payload = {
+    "words_result": [
+        {"words": "订单编码"},
+        {"words": "03080030"},
+        {"words": "分组编码"},
+        {"words": "0308A"},
+        {"words": "方案三女未婚（需预约）"},
+        {"words": "自定义选项"},
+        {"words": "血常规"},
+        {"words": "甲状腺彩超"},
+        {"words": "分组信息"},
+    ]
+}
+
 
 def test_single_scheme_parsing():
     """验证单方案提取结果"""
@@ -141,6 +155,43 @@ def test_noise_prefix_title_parsing():
     assert items == ["蛋白组合（四项）", "肾功三项"], "Items should remain unaffected."
 
 
+def test_order_code_triggers_single_scheme():
+    """验证包含订单/分组编码时也被视为单方案"""
+    schemes = logic.extract_data_from_ocr_json(order_code_single_payload)
+    assert len(schemes) == 1, "Order-code payload should be treated as single scheme."
+    title, items = schemes[0]
+    assert title.startswith("方案三女未婚"), "Title should be the first line containing '方案'."
+    assert items == ["血常规", "甲状腺彩超"], "Items should list entries after '自定义选项'."
+
+
+def test_find_best_match_ignores_noise_parentheses():
+    """匹配时忽略括号里的提示信息"""
+    scheme_names = ["方案一 - 男", "方案一 - 女未婚"]
+    matched = logic.find_best_match("方案一男（不可替检紫单见名单）", scheme_names)
+    assert matched == "方案一 - 男", "Noise-only parentheses should not block matching."
+
+
+def test_find_best_match_preserves_category_parentheses():
+    """保留括号中的性别/婚姻提示"""
+    scheme_names = ["方案一 - 男", "方案一 - 女未婚"]
+    matched = logic.find_best_match("方案一（女未婚）", scheme_names)
+    assert matched == "方案一 - 女未婚", "Category hints inside parentheses must remain."
+
+
+def test_find_best_match_handles_unclosed_noise_parentheses():
+    """缺少右括号的提示信息也应被剔除"""
+    scheme_names = ["方案四 - 女未婚", "方案五 - 女已婚", "方案三（CT） - 女已婚"]
+    assert (
+        logic.find_best_match("方案四女未婚（紫单绿单见名单不可替", scheme_names) == "方案四 - 女未婚"
+    ), "Unclosed noise-only parentheses should be removed."
+    assert (
+        logic.find_best_match("方案五女已婚（紫单绿单见名单不可替", scheme_names) == "方案五 - 女已婚"
+    ), "Unclosed noise-only parentheses should be removed for other schemes as well."
+    assert (
+        logic.find_best_match("方案三女已婚(CT)(紫单绿单见名单", scheme_names) == "方案三（CT） - 女已婚"
+    ), "Mixed CT markers with trailing noise should match."
+
+
 def run_all():
     """运行全部测试用例"""
     test_single_scheme_parsing()
@@ -153,6 +204,14 @@ def run_all():
     print("PASS: price-before-group parsing behaves as expected.")
     test_noise_prefix_title_parsing()
     print("PASS: noisy title parsing behaves as expected.")
+    test_order_code_triggers_single_scheme()
+    print("PASS: order-code payload treated as single scheme.")
+    test_find_best_match_ignores_noise_parentheses()
+    print("PASS: best-match ignores noise-only parentheses.")
+    test_find_best_match_preserves_category_parentheses()
+    print("PASS: best-match preserves category parentheses.")
+    test_find_best_match_handles_unclosed_noise_parentheses()
+    print("PASS: best-match handles unclosed noise parentheses.")
 
 
 if __name__ == "__main__":
