@@ -78,9 +78,9 @@ for N in 1 2 3 4; do
 
   XLSX=$(ls "$TEST_DIR"/*.xlsx 2>/dev/null | head -1)
   IMAGES_EXIST=()
-  for f in "$TEST_DIR"/*.jpeg "$TEST_DIR"/*.jpg "$TEST_DIR"/*.png; do
-    [ -f "$f" ] && IMAGES_EXIST+=("$f")
-  done
+  while IFS= read -r -d '' f; do
+    IMAGES_EXIST+=("$f")
+  done < <(find "$TEST_DIR" -maxdepth 2 -type f \( -iname '*.jpeg' -o -iname '*.jpg' -o -iname '*.png' \) -print0 2>/dev/null)
 
   if [ -z "${XLSX:-}" ] || [ ${#IMAGES_EXIST[@]} -eq 0 ]; then
     echo "[WARN][Verify:main] Skip $TEST_DIR (no xlsx or images)"

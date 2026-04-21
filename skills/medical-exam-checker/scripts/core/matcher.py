@@ -4,8 +4,8 @@
 匹配流水线（compare_items）：
   L1 规则层：alias 归一 + 字符精确匹配             → match_type='exact'/'alias'
   L2 Fuzzy 层：fuzz.ratio ≥ 85                     → match_type='fuzzy'
-  L3 LLM 层（可选，默认开启）：Gemini/Claude 语义   → match_type='llm'，支持一对多
-  L4 Composites 展开：父项命中则子项自动覆盖         → match_type='composite'
+  L3 Composites 展开：父项命中则子项自动覆盖         → match_type='composite'
+  L4 LLM 层（可选，默认开启，兜底）：Gemini/Claude   → match_type='llm'，支持一对多
   L5 剩余：未匹配的 Excel 项 → 缺失；OCR 项 → 多余
 
 方案名匹配保留原有两步法（分类筛选 + 核心名称 token_sort_ratio ≥ 95）。
@@ -217,7 +217,9 @@ def compare_items(
 ) -> List[ComparisonRow]:
     """Excel × OCR 项目列表对比，返回细粒度对比行。
 
-    调用顺序：alias/精确 → fuzzy → LLM（含一对多）→ composites 展开 → 剩余缺失/多余。
+    调用顺序：alias/精确 → fuzzy → composites 展开 → LLM（含一对多）→ 剩余缺失/多余。
+    composites 先于 LLM：业务规则显式声明的父-子关系优先级高于 LLM 启发式匹配，
+    避免 LLM 把父项误匹配到某个子项、其余子项被判"多余"的情况。
     LLM 失败自动降级，不阻塞主流程。
     """
     def canon(term: str) -> str:
@@ -239,26 +241,26 @@ def compare_items(
     )
     rows.extend(rows_l2)
 
-    # ---------- L3: LLM 语义（可选） ----------
+    # ---------- L3: composites 双向展开 ----------
+    # 只要业务上 Excel 方案里有父项（全量 excel_items），双向吸收子项
+    if composites:
+        excel_items_set = set(excel_items)
+        rows_l3, excel_remaining, ocr_remaining = _expand_composites(
+            excel_remaining, ocr_remaining, composites, excel_items_set
+        )
+        rows.extend(rows_l3)
+
+    # ---------- L4: LLM 语义（可选，兜底） ----------
     if llm_client is not None and (excel_remaining or ocr_remaining):
         try:
-            rows_l3, excel_remaining, ocr_remaining = _match_by_llm(
+            rows_l4, excel_remaining, ocr_remaining = _match_by_llm(
                 excel_remaining, ocr_remaining, llm_client
             )
-            rows.extend(rows_l3)
+            rows.extend(rows_l4)
         except LLMError as exc:
             logger.warning(f"LLM layer failed, fallback to rule-only: {exc}")
         except Exception as exc:
             logger.warning(f"LLM layer unexpected error, fallback: {exc}")
-
-    # ---------- L4: composites 双向展开 ----------
-    # 只要业务上 Excel 方案里有父项（全量 excel_items），双向吸收子项
-    if composites:
-        excel_items_set = set(excel_items)
-        rows_l4, excel_remaining, ocr_remaining = _expand_composites(
-            excel_remaining, ocr_remaining, composites, excel_items_set
-        )
-        rows.extend(rows_l4)
 
     # ---------- L5: 剩余判缺失/多余 ----------
     for item in excel_remaining:
