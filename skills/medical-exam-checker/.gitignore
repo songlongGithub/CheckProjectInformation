@@ -13,3 +13,6 @@ tests/output/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# 自举 venv（首次运行 check.py / ocr_image.py 时自建）
+.venv/

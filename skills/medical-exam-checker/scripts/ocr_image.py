@@ -13,6 +13,68 @@
 
 from __future__ import annotations
 
+# ---------- 自举：首次运行自建 .venv 并装依赖，然后 re-exec ----------
+# 这段必须在任何第三方包 import 之前，只用 stdlib。
+import os as _os
+import sys as _sys
+from pathlib import Path as _Path
+
+
+def _bootstrap_venv() -> None:
+    """确保 skill 在自带 .venv 下运行；缺则建，缺依赖则装，最后 re-exec 自己。"""
+    skill_root = _Path(__file__).resolve().parent.parent
+    venv_dir = skill_root / ".venv"
+    if _sys.platform == "win32":
+        venv_py = venv_dir / "Scripts" / "python.exe"
+    else:
+        venv_py = venv_dir / "bin" / "python"
+    sentinel = venv_dir / ".bootstrap-done"
+
+    # 用 sys.prefix 判定是否已在 skill venv 下（不能用 sys.executable 比，
+    # 因为 .venv/bin/python 是指向系统 python 的 symlink，resolve 后会误判）
+    try:
+        if _Path(_sys.prefix).resolve() == venv_dir.resolve():
+            return
+    except (OSError, ValueError):
+        pass
+
+    if not sentinel.exists():
+        import subprocess  # noqa: PLC0415
+        print(
+            f"[bootstrap] Setting up skill venv at {venv_dir} (one-time, 1-2 min) ...",
+            file=_sys.stderr,
+            flush=True,
+        )
+        if not venv_py.exists():
+            subprocess.check_call(
+                [_sys.executable, "-m", "venv", str(venv_dir)],
+                stdout=_sys.stderr,
+            )
+        subprocess.check_call(
+            [
+                str(venv_py),
+                "-m",
+                "pip",
+                "install",
+                "--quiet",
+                "--disable-pip-version-check",
+                "-r",
+                str(skill_root / "requirements.txt"),
+            ]
+        )
+        sentinel.touch()
+        print(
+            f"[bootstrap] Venv ready; re-executing under {venv_py}",
+            file=_sys.stderr,
+            flush=True,
+        )
+
+    _os.execv(str(venv_py), [str(venv_py), str(_Path(__file__).resolve())] + _sys.argv[1:])
+
+
+_bootstrap_venv()
+# -------------------------------------------------------------------
+
 import argparse
 import json
 import sys

@@ -7,8 +7,8 @@ metadata:
   what: 解析 Excel 方案分类 + 百度 OCR 识图抽项 + 三层匹配（规则/模糊/LLM）+ 父子复合项双向展开 + 输出 4 种格式报告（完整 JSON / 完整 Markdown / 精简差异 Markdown / 聊天 bot 紧凑文本）。
   how: Python + pandas/openpyxl 解析 Excel（状态机按男/女未婚/女已婚分类）；百度 OCR accurate_basic 识字；fuzzywuzzy 模糊匹配（阈值 85）；Gemini 2.0 Flash / Claude Haiku 语义兜底（可关）；composites 规则双向处理"父项-子项"业务包含关系。
   results: 逐方案输出匹配 / 缺失 / 多余，完美匹配免复核，部分匹配只列差异行；match_type 字段可追溯（exact / alias / fuzzy / composite / llm）。
-  version: 1.0.8
-  updated: '2026-04-21'
+  version: 1.0.9
+  updated: '2026-04-22'
   jtbd-1: 体检机构把订单截图发给我后，我要核对是否和已签的 Excel 方案一致，希望自动出差异报告，我只看需要人工判断的条目。
   jtbd-2: 聊天机器人收到体检订单图片，要立即输出"完美 / 需复核 / 未匹配方案"三类摘要，紧凑且无 markdown 表格（IM 渲染兼容）。
   audit:
@@ -55,13 +55,22 @@ metadata:
 
 ### 前置条件
 
-1. Python 3.10+（`pandas / openpyxl / requests / fuzzywuzzy`，见 `requirements.txt`）
+1. Python 3.9+（`pandas / openpyxl / requests / fuzzywuzzy`，首次运行时 skill 会**自动建 venv 并装依赖**，无需手动 `pip install`）
 2. 百度 OCR 凭据（优先级：CLI 参数 > `OCR_API_KEY/OCR_SECRET_KEY` 环境变量 > `config/credentials.json`）
 
-### 安装依赖
+### 依赖自动安装
 
-```bash
-pip install -r requirements.txt
+`scripts/check.py` 和 `scripts/ocr_image.py` 入口含 bootstrap：
+
+- 首次运行 → 在 skill 目录下创建 `.venv`、`pip install -r requirements.txt`、再 `os.execv` 自己进入 venv
+- 后续运行 → 检测到 venv 已就绪（sentinel `.venv/.bootstrap-done`），直接 re-exec，毫秒级开销
+- 不污染系统 Python；`npx skills update` 后若 venv 被清，下次自愈
+
+首次运行会打印到 stderr：
+
+```
+[bootstrap] Setting up skill venv at .../.venv (one-time, 1-2 min) ...
+[bootstrap] Venv ready; re-executing under .../.venv/bin/python
 ```
 
 ### 三条核心命令

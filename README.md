@@ -287,18 +287,18 @@ npx skills add songlongGithub/CheckProjectInformation@medical-exam-checker -y
 
 ### 依赖
 
-安装 Skill 后在首次运行前：
+Skill 首次运行时会**自动建 venv 并装 Python 依赖**，无需手动 `pip install`。首次会在 stderr 打印 `[bootstrap] Setting up skill venv ...`，耗时约 1-2 分钟；后续运行毫秒级开销。
 
-```bash
-cd ~/.claude/skills/medical-exam-checker  # 或 .agents/skills/medical-exam-checker
-pip install -r requirements.txt
-```
-
-凭据配置见 `config/credentials.example.json`（百度 OCR + Gemini/Claude 可选）。
+凭据配置见 `config/credentials.example.json`（百度 OCR 必需 + Gemini/Claude 可选）。
 
 详细文档见 [`skills/medical-exam-checker/SKILL.md`](skills/medical-exam-checker/SKILL.md)。
 
 ## 📝 更新日志
+
+### Skill v1.0.9 (2026-04-22)
+- 🥾 入口脚本 (`check.py` / `ocr_image.py`) 自带 venv bootstrap：首次运行自建 `.venv` 并装依赖，host agent 不再需要批准 `pip install` 到系统 python
+- 🔄 bootstrap 幂等：sentinel `.venv/.bootstrap-done` 在，直接 re-exec；被清除会自愈
+- 📝 SKILL.md / README 同步更新安装流程，去掉手动 `pip install` 步骤
 
 ### Skill v1.0.8 (2026-04-21)
 - 🔗 composites 双向展开，支持"肝功全套"聚合项 ↔ 展开子项双向匹配

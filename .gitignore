@@ -23,6 +23,9 @@ web_frontend/dist/
 web_frontend/.vite/
 web_frontend/.cache/
 
+# npx skills 工具在项目根偶发创建的空 package-lock.json
+/package-lock.json
+
 # PyInstaller
 *.spec.bak
 
