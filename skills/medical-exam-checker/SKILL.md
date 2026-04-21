@@ -71,6 +71,27 @@ python scripts/check.py \
   --markdown report.md
 ```
 
+**输出格式（四种可同时开启）**
+
+| flag | 适用场景 | 体积 |
+|---|---|---|
+| `--output <json>` | 程序消费、审计留痕、完整契约 | 大 |
+| `--markdown <md>` | 人工全量核对、逐行可追溯 | 大 |
+| `--markdown-diff <md>` | 核对人员复核、只看差异 | 小 |
+| `--chat-output <txt>` | 聊天 bot / IM 机器人转发通知 | 极小 |
+
+一次跑完可同时产出多种：
+
+```bash
+python scripts/check.py \
+  --excel 方案.xlsx \
+  --images photos/*.jpg \
+  --output report.json \
+  --markdown report.md \
+  --markdown-diff report_diff.md \
+  --chat-output report_chat.txt
+```
+
 **LLM 开关：**
 
 ```bash

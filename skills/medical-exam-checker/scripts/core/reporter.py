@@ -318,3 +318,162 @@ def _render_ocr_scheme(scheme: Dict) -> List[str]:
             f"| {row.get('excel', '')} | {row.get('ocr', '')} | {status_cell} | {note} |"
         )
     return lines
+
+
+# ---------- Markdown 差异精简版 ----------
+def render_markdown_diff(report: Dict) -> str:
+    """仅保留 partial 与 no_match scheme 的精简 Markdown，适合核对人员看。
+
+    - 省略完美匹配的 scheme
+    - partial scheme 只列缺失/多余行（省略所有匹配行）
+    - no_match scheme 折叠展示 OCR 项清单（<details>）
+    """
+    excel_info = report.get("excel", {})
+    summary = report.get("summary", {})
+    excel_file = os.path.basename(excel_info.get("file", ""))
+
+    lines: List[str] = []
+    lines.append("# 体检方案差异报告（精简版 · 仅差异）")
+    lines.append("")
+    lines.append(f"- 生成时间: {report.get('generated_at', '')}")
+    lines.append(f"- Excel: `{excel_file}`")
+    lines.append(
+        f"- 图片: {summary.get('total_images', 0)} | "
+        f"完美 {summary.get('perfect_matches', 0)} · "
+        f"部分 {summary.get('partial_matches', 0)} · "
+        f"未匹配 {summary.get('no_match_schemes', 0)}"
+    )
+    lines.append("")
+    lines.append("> 省略所有 ✅ 完美匹配 scheme 与逐行匹配细节，仅保留需人工关注的条目。")
+    lines.append("")
+
+    partials: List[tuple] = []
+    no_matches: List[tuple] = []
+    for img in report.get("images", []):
+        for sch in img.get("ocr_schemes", []) or []:
+            v = sch.get("verdict")
+            if v == "partial":
+                partials.append((img, sch))
+            elif v == "no_match":
+                no_matches.append((img, sch))
+
+    lines.append("---")
+    lines.append("")
+    lines.append(f"## ⚠️ 部分匹配（{len(partials)} 个 scheme）")
+    lines.append("")
+    if not partials:
+        lines.append("_无_")
+        lines.append("")
+    for img, sch in partials:
+        st = sch.get("stats", {})
+        lines.append(
+            f"### `{img.get('file', '')}` · {sch.get('ocr_title', '')} ↔ "
+            f"{sch.get('matched_excel_scheme', '')}"
+        )
+        lines.append("")
+        lines.append(
+            f"- 统计: 匹配 {st.get('matched', 0)} / 缺失 {st.get('missing', 0)} / "
+            f"多余 {st.get('extra', 0)} "
+            f"(Excel {st.get('total_excel', 0)} vs OCR {st.get('total_ocr', 0)})"
+        )
+        lines.append("")
+        miss = [r for r in sch.get("comparison", []) if r.get("status") == "缺失"]
+        extra = [r for r in sch.get("comparison", []) if r.get("status") == "多余"]
+        if miss or extra:
+            lines.append("| Excel 项 | OCR 项 | 状态 |")
+            lines.append("|---|---|---|")
+            for r in miss:
+                lines.append(f"| {r.get('excel', '')} | 【缺失】 | ❌ 缺失 |")
+            for r in extra:
+                lines.append(f"| 【多余】 | {r.get('ocr', '')} | ⚠️ 多余 |")
+            lines.append("")
+
+    lines.append("---")
+    lines.append("")
+    lines.append(f"## ❌ 未匹配方案（{len(no_matches)} 个 scheme）")
+    lines.append("")
+    lines.append("_Excel 中不存在这些方案名，属于数据集合不对齐，需业务确认。_")
+    lines.append("")
+    if not no_matches:
+        lines.append("_无_")
+        lines.append("")
+    for img, sch in no_matches:
+        st = sch.get("stats", {})
+        lines.append(f"### `{img.get('file', '')}` · {sch.get('ocr_title', '')}")
+        lines.append("")
+        lines.append(f"- OCR 识到 {st.get('extra', 0)} 项（Excel 无此方案）")
+        lines.append("")
+        extras = [r.get("ocr", "") for r in sch.get("comparison", []) if r.get("status") == "多余"]
+        lines.append("<details><summary>点击展开项目清单</summary>")
+        lines.append("")
+        for e in extras:
+            lines.append(f"- {e}")
+        lines.append("")
+        lines.append("</details>")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+# ---------- 聊天机器人紧凑文本 ----------
+def render_chat(report: Dict) -> str:
+    """紧凑纯文本，适合贴进 IM bot 消息窗口（Telegram/飞书/Slack/WeCom 通用）。
+
+    - 无 Markdown 表格（部分 IM 不渲染）
+    - 用 emoji 做视觉分层
+    - 只列需要人关注的差异，省略完美匹配
+    - 全部完美时只输出总览 + ✅
+    """
+    excel_info = report.get("excel", {})
+    summary = report.get("summary", {})
+    excel_file = os.path.basename(excel_info.get("file", ""))
+
+    lines: List[str] = []
+    lines.append(f"📋 {excel_file}")
+    lines.append(
+        f"📊 {summary.get('total_images', 0)} 图 · "
+        f"✅ 完美 {summary.get('perfect_matches', 0)} · "
+        f"⚠️ 部分 {summary.get('partial_matches', 0)} · "
+        f"❌ 未匹配 {summary.get('no_match_schemes', 0)}"
+    )
+
+    partials: List[tuple] = []
+    no_matches: List[tuple] = []
+    for img in report.get("images", []):
+        for sch in img.get("ocr_schemes", []) or []:
+            v = sch.get("verdict")
+            if v == "partial":
+                partials.append((img, sch))
+            elif v == "no_match":
+                no_matches.append((img, sch))
+
+    # 全部完美 → 早退
+    if not partials and not no_matches:
+        lines.append("")
+        lines.append("🎉 全部完美匹配，无需人工复核。")
+        return "\n".join(lines)
+
+    if partials:
+        lines.append("")
+        lines.append(f"⚠️ 需复核 ({len(partials)})")
+        for i, (img, sch) in enumerate(partials, 1):
+            name = sch.get("matched_excel_scheme") or sch.get("ocr_title", "")
+            fn = img.get("file", "")
+            miss = [r.get("excel", "") for r in sch.get("comparison", []) if r.get("status") == "缺失"]
+            extra = [r.get("ocr", "") for r in sch.get("comparison", []) if r.get("status") == "多余"]
+            lines.append(f"{i}) {name}  [{fn}]")
+            for m in miss:
+                lines.append(f"   ❌ 缺失: {m}")
+            for e in extra:
+                lines.append(f"   ⚠️ 多余: {e}")
+
+    if no_matches:
+        lines.append("")
+        lines.append(f"❌ Excel 未列方案 ({len(no_matches)}) — 需业务确认")
+        for i, (img, sch) in enumerate(no_matches, 1):
+            title = sch.get("ocr_title", "")
+            fn = img.get("file", "")
+            cnt = sch.get("stats", {}).get("extra", 0)
+            lines.append(f"{i}) {title}  [{fn}]  ({cnt} 项)")
+
+    return "\n".join(lines)

@@ -50,7 +50,9 @@ from scripts.core.reporter import (  # noqa: E402
     build_image_result_ok,
     build_ocr_scheme_result,
     build_report,
+    render_chat,
     render_markdown,
+    render_markdown_diff,
 )
 from scripts.core.rules import (  # noqa: E402
     default_credentials_path,
@@ -131,7 +133,17 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--markdown",
         default=None,
-        help="可选：额外输出 Markdown 报告到该路径",
+        help="可选：额外输出完整 Markdown 报告到该路径",
+    )
+    parser.add_argument(
+        "--markdown-diff",
+        default=None,
+        help="可选：输出精简 Markdown（仅 partial + no_match，省略完美匹配详情）",
+    )
+    parser.add_argument(
+        "--chat-output",
+        default=None,
+        help="可选：输出紧凑文本，适合粘贴进 IM bot 消息窗口（Telegram/飞书/Slack 通用）",
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="DEBUG 级别日志")
     return parser.parse_args(argv)
@@ -194,6 +206,14 @@ def run(args: argparse.Namespace) -> int:
     if args.markdown:
         _write_text(args.markdown, render_markdown(report))
         logger.info(f"Markdown report written to {args.markdown}")
+
+    if args.markdown_diff:
+        _write_text(args.markdown_diff, render_markdown_diff(report))
+        logger.info(f"Markdown diff report written to {args.markdown_diff}")
+
+    if args.chat_output:
+        _write_text(args.chat_output, render_chat(report))
+        logger.info(f"Chat-friendly report written to {args.chat_output}")
 
     return 0
 

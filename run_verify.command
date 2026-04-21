@@ -99,6 +99,8 @@ for N in 1 2 3 4; do
     --llm-cache-dir "$TEST_DIR/.llm_cache" \
     --output "$TEST_DIR/report.json" \
     --markdown "$TEST_DIR/report.md" \
+    --markdown-diff "$TEST_DIR/report_diff.md" \
+    --chat-output "$TEST_DIR/report_chat.txt" \
     "${LLM_ARGS[@]}"
 done
 

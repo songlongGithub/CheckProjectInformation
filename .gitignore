@@ -68,6 +68,8 @@ dmypy.json
 # Medical-exam-checker 测试产物与缓存（可复现、不入库）
 test/**/report.json
 test/**/report.md
+test/**/report_diff.md
+test/**/report_chat.txt
 test/**/schemes.json
 test/**/.ocr_cache/
 test/**/.llm_cache/
