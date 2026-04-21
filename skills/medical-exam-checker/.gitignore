@@ -1,0 +1,15 @@
+# 本地凭据，严禁提交
+config/credentials.json
+
+# OCR 缓存目录
+**/.ocr_cache/
+
+# 生成的报告
+*.report.json
+*.report.md
+tests/output/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/

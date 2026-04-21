@@ -64,3 +64,13 @@ dmypy.json
 # Temporary files
 *.tmp
 *.temp
+
+# Medical-exam-checker 测试产物与缓存（可复现、不入库）
+test/**/report.json
+test/**/report.md
+test/**/schemes.json
+test/**/.ocr_cache/
+test/**/.llm_cache/
+
+# LLM 凭据（skill 内部 .gitignore 已保护，双保险）
+skills/medical-exam-checker/config/credentials.json
