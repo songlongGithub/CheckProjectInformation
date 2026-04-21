@@ -1,6 +1,33 @@
 ---
 name: medical-exam-checker
 description: 体检方案智能核对——用 Excel 体检方案对比图片（体检订单截图）OCR 识别的结果。触发条件：用户上传体检方案 Excel (xlsx) 和体检订单图片 (jpg/jpeg/png)，请求"核对"、"比对"、"找出差异"、"确认项目"。支持一张图片含多个方案的场景，逐方案输出匹配/缺失/多余项。三层匹配：规则（alias+精确）→ fuzzy（85 阈值）→ LLM 语义（默认 Gemini，可切 Claude，可关闭）；composites 处理"父项覆盖子项"业务包含关系（如"妇科检查"覆盖"白带常规"）。不适用于：非体检场景的 Excel 对比、PDF 输入、手写体识别、无百度 OCR 凭据的纯离线识别。
+metadata:
+  short-description: 体检方案 Excel × 体检订单图片 OCR 自动核对，三层匹配 + composites 父子项展开，输出 JSON / Markdown / 聊天文本。
+  why: 体检机构订单截图与客户方案表常对不齐（漏项/多项/术语不同），人工核对慢且易漏；尤其同一项目在 OCR 侧可能聚合（"肝功全套"）也可能展开为多个子项（"肝功两项 + 蛋白四项 + 胆红素三项 + GGT..."），纯字符匹配无能为力。
+  what: 解析 Excel 方案分类 + 百度 OCR 识图抽项 + 三层匹配（规则/模糊/LLM）+ 父子复合项双向展开 + 输出 4 种格式报告（完整 JSON / 完整 Markdown / 精简差异 Markdown / 聊天 bot 紧凑文本）。
+  how: Python + pandas/openpyxl 解析 Excel（状态机按男/女未婚/女已婚分类）；百度 OCR accurate_basic 识字；fuzzywuzzy 模糊匹配（阈值 85）；Gemini 2.0 Flash / Claude Haiku 语义兜底（可关）；composites 规则双向处理"父项-子项"业务包含关系。
+  results: 逐方案输出匹配 / 缺失 / 多余，完美匹配免复核，部分匹配只列差异行；match_type 字段可追溯（exact / alias / fuzzy / composite / llm）。
+  version: 1.0.8
+  updated: '2026-04-21'
+  jtbd-1: 体检机构把订单截图发给我后，我要核对是否和已签的 Excel 方案一致，希望自动出差异报告，我只看需要人工判断的条目。
+  jtbd-2: 聊天机器人收到体检订单图片，要立即输出"完美 / 需复核 / 未匹配方案"三类摘要，紧凑且无 markdown 表格（IM 渲染兼容）。
+  audit:
+    kind: module
+    author: songlongGithub
+    category: Document Processing
+    permissions:
+      file-read: true       # Excel / 图片 / credentials.json / default_rules.json
+      file-write: true      # 报告（--output / --markdown / --markdown-diff / --chat-output）+ 缓存（--ocr-cache-dir / --llm-cache-dir）
+      network: true         # 百度 OCR API（必需）+ Gemini / Claude API（可关）
+      shell: false
+    network-endpoints:
+      - aip.baidubce.com                    # 百度 OCR accurate_basic
+      - generativelanguage.googleapis.com   # Gemini（可选，--no-llm 可关）
+      - api.anthropic.com                   # Claude（可选，--llm-provider claude）
+    data-boundaries:
+      - 仅读取本地 Excel/图片/凭据；除 OCR/LLM 调用外无任何对外传输
+      - 所有写入限定在用户显式指定路径（--output / --markdown / --ocr-cache-dir 等）
+      - 不修改系统文件、不执行 shell 命令、不持久化任何全局状态
 ---
 
 # Medical Exam Checker Skill

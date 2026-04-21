@@ -250,7 +250,61 @@ docker run -d --name medical-exam-web -p 8000:8000 medical-exam-web
 python test_ocr_parsing.py
 ```
 
+## 🤖 作为 AI Agent Skill 使用
+
+本仓库内置 [OpenClaw](https://skills.sh) 生态兼容 Skill：`medical-exam-checker`。支持 Claude Code / Codex / Cursor / Cline / Gemini CLI 等 12+ 个 agent 平台直接调用。
+
+### 一键安装
+
+**全局安装**（任何项目可用）：
+
+```bash
+npx skills add songlongGithub/CheckProjectInformation@medical-exam-checker -g -y
+```
+
+**仅安装到当前项目**：
+
+```bash
+npx skills add songlongGithub/CheckProjectInformation@medical-exam-checker -y
+```
+
+### 触发方式
+
+装好后直接用业务语言说，skill 自动激活：
+
+- "核对 test/1 里的体检方案和订单图片"
+- "比对这份 Excel 和这几张截图，找出差异"
+- "我有份体检方案和几张订单截图，帮我看看漏检多检"
+
+### 输出格式
+
+| 格式 | 适用场景 |
+|---|---|
+| `--output <json>` | 程序消费 / 审计留痕 |
+| `--markdown <md>` | 人工逐行核对 |
+| `--markdown-diff <md>` | 只看差异的精简版 |
+| `--chat-output <txt>` | 聊天机器人转发（Telegram/飞书/Slack 通用） |
+
+### 依赖
+
+安装 Skill 后在首次运行前：
+
+```bash
+cd ~/.claude/skills/medical-exam-checker  # 或 .agents/skills/medical-exam-checker
+pip install -r requirements.txt
+```
+
+凭据配置见 `config/credentials.example.json`（百度 OCR + Gemini/Claude 可选）。
+
+详细文档见 [`skills/medical-exam-checker/SKILL.md`](skills/medical-exam-checker/SKILL.md)。
+
 ## 📝 更新日志
+
+### Skill v1.0.8 (2026-04-21)
+- 🔗 composites 双向展开，支持"肝功全套"聚合项 ↔ 展开子项双向匹配
+- 📋 新增 `--markdown-diff` 精简报告 + `--chat-output` 聊天 bot 文本
+- 🧩 matcher 三层匹配流水线：规则 (exact/alias) → fuzzy (85) → composites → LLM 兜底
+- 🤖 发布到 OpenClaw 生态，支持 `npx skills add` 一键安装
 
 ### v1.0.0 (2024-10-17)
 - ✨ 初始版本发布
