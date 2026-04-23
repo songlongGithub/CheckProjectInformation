@@ -1,0 +1,21 @@
+{
+  "name": "@songlong/openclaw-query-gate",
+  "version": "0.3.0",
+  "description": "Query-gate: media inbound 放行以保证 OCR+session 丰富，无触发词回复在 outbound 处被 cancel；agent 触发时看到完整累积上下文，用户端零刷屏。",
+  "type": "module",
+  "main": "src/index.js",
+  "license": "MIT",
+  "files": [
+    "src/",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "openclaw": ">=2026.3.22"
+  },
+  "openclaw": {
+    "extensions": [
+      "./src/index.js"
+    ]
+  }
+}
