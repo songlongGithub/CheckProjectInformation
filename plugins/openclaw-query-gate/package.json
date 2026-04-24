@@ -1,7 +1,7 @@
 {
   "name": "@songlong/openclaw-query-gate",
-  "version": "0.3.0",
-  "description": "Query-gate: media inbound 放行以保证 OCR+session 丰富，无触发词回复在 outbound 处被 cancel；agent 触发时看到完整累积上下文，用户端零刷屏。",
+  "version": "0.5.0",
+  "description": "Query-gate v0.5：v0.4 语义路由 + 把 medical-exam-checker skill 注册成独立 tool（medical_exam_check），agent 可直接 tool_use。",
   "type": "module",
   "main": "src/index.js",
   "license": "MIT",
