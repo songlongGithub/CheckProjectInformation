@@ -74,6 +74,76 @@ def _is_price_line(text: str) -> bool:
     return bool(re.fullmatch(r"\d+(\.\d+)?", cleaned))
 
 
+_GROUP_TITLE_EXACT_NOISE = {
+    "已婚",
+    "未婚",
+    "不限",
+    "男",
+    "女",
+    "统一结账",
+    "用户自费",
+    "复制方案",
+}
+
+_GROUP_TITLE_PREFIX_NOISE = (
+    "订单分组",
+    "订单编码",
+    "分组编码",
+    "分组人数",
+    "婚姻状况",
+    "性别",
+    "年龄上限",
+    "年龄下限",
+    "分组缴",
+    "现场加",
+    "分组选项",
+    "显示详细信息",
+    "自定义选项",
+)
+
+
+def _clean_group_title_candidate(text: str) -> str | None:
+    """清理分组名称候选值，过滤编码、字段名和结账元数据。"""
+    candidate = (text or "").strip()
+    if not candidate:
+        return None
+    if "分组名称" in candidate:
+        candidate = re.sub(r"^.*?分组名称[:：]?", "", candidate).strip()
+    if not candidate:
+        return None
+    if candidate in _GROUP_TITLE_EXACT_NOISE:
+        return None
+    if any(candidate.startswith(prefix) for prefix in _GROUP_TITLE_PREFIX_NOISE):
+        return None
+    if _is_price_line(candidate):
+        return None
+    if re.fullmatch(r"[A-Za-z0-9.\-_/]+", candidate):
+        return None
+    if len(candidate) <= 2:
+        return None
+    return candidate
+
+
+def _extract_group_name_title(words: List[str], stop_idx: int | None) -> str | None:
+    """从订单分组表格中提取“分组名称”列值作为标题。"""
+    search_end = stop_idx if stop_idx is not None else len(words)
+    label_indices = [idx for idx, text in enumerate(words[:search_end]) if "分组名称" in text]
+    if not label_indices:
+        return None
+
+    for label_idx in reversed(label_indices):
+        inline_title = _clean_group_title_candidate(words[label_idx])
+        if inline_title:
+            return inline_title
+        for text in words[label_idx + 1 : search_end]:
+            if "分组选项" in text or "自定义选项" in text:
+                break
+            candidate = _clean_group_title_candidate(text)
+            if candidate:
+                return candidate
+    return None
+
+
 def _trim_to_scheme_keyword(text: str) -> str:
     """从文本截取首个 '方案' 及其后内容"""
     if not text:
@@ -84,16 +154,17 @@ def _trim_to_scheme_keyword(text: str) -> str:
 
 # ---------- 单方案解析 ----------
 def _parse_single_scheme(words: List[str]) -> List[Tuple[str, List[str]]]:
+    start_idx = next((i for i, t in enumerate(words) if "自定义选项" in t), None)
+    group_title = _extract_group_name_title(words, start_idx)
     title_idx = next((i for i, t in enumerate(words) if "方案" in t), None)
-    if title_idx is None:
+    if group_title is None and title_idx is None:
         logger.warning("Single-scheme payload missing title.")
         return []
-    title = words[title_idx].strip()
+    title = group_title or words[title_idx].strip()
 
-    start_idx = next((i for i, t in enumerate(words) if "自定义选项" in t), None)
     if start_idx is None:
         logger.warning("Single-scheme payload missing '自定义选项' marker.")
-        return [(title, [])]
+        return [(title if group_title else _trim_to_scheme_keyword(title), [])]
 
     end_idx = next(
         (i for i, t in enumerate(words[start_idx + 1 :], start_idx + 1) if "分组信息" in t),
@@ -115,7 +186,7 @@ def _parse_single_scheme(words: List[str]) -> List[Tuple[str, List[str]]]:
         if not value:
             continue
         items.append(value)
-    return [(_trim_to_scheme_keyword(title), items)]
+    return [(title if group_title else _trim_to_scheme_keyword(title), items)]
 
 
 # ---------- 多方案解析 ----------

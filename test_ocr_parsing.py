@@ -102,6 +102,40 @@ order_code_single_payload = {
     ]
 }
 
+group_name_table_payload = {
+    "words_result": [
+        {"words": "订单分组"},
+        {"words": "分组名称"},
+        {"words": "订单编码"},
+        {"words": "分组编码"},
+        {"words": "分组名称"},
+        {"words": "分组人数"},
+        {"words": "婚姻状况"},
+        {"words": "性别"},
+        {"words": "年龄上限"},
+        {"words": "年龄下限"},
+        {"words": "分组缴.."},
+        {"words": "现场加.."},
+        {"words": "030800."},
+        {"words": "030800.."},
+        {"words": "40岁以下女已婚（紫单，不可替检）"},
+        {"words": "2"},
+        {"words": "已婚"},
+        {"words": "女"},
+        {"words": "100"},
+        {"words": "10"},
+        {"words": "统一结账"},
+        {"words": "用户自费"},
+        {"words": "分组选项"},
+        {"words": "显示详细信息"},
+        {"words": "自定义选项"},
+        {"words": "复制方案"},
+        {"words": "血流变（新）"},
+        {"words": "心肌酶四项"},
+        {"words": "分组信息"},
+    ]
+}
+
 
 def test_single_scheme_parsing():
     """验证单方案提取结果"""
@@ -164,6 +198,15 @@ def test_order_code_triggers_single_scheme():
     assert items == ["血常规", "甲状腺彩超"], "Items should list entries after '自定义选项'."
 
 
+def test_group_name_table_uses_group_name_as_title():
+    """验证订单分组表格结构优先使用分组名称列值作为标题"""
+    schemes = logic.extract_data_from_ocr_json(group_name_table_payload)
+    assert len(schemes) == 1, "Group-name table payload should produce one scheme."
+    title, items = schemes[0]
+    assert title == "40岁以下女已婚（紫单，不可替检）", "Title should come from 分组名称, not 复制方案."
+    assert items == ["血流变（新）", "心肌酶四项"], "Items should still skip the 复制方案 hint."
+
+
 def test_find_best_match_ignores_noise_parentheses():
     """匹配时忽略括号里的提示信息"""
     scheme_names = ["方案一 - 男", "方案一 - 女未婚"]
@@ -192,6 +235,13 @@ def test_find_best_match_handles_unclosed_noise_parentheses():
     ), "Mixed CT markers with trailing noise should match."
 
 
+def test_find_best_match_normalizes_duplicate_age_range():
+    """Excel 里重复年龄边界时仍应匹配 OCR 分组名称"""
+    scheme_names = ["40岁以下 - 男", "40~40岁以上 - 男"]
+    matched = logic.find_best_match("40岁以上男（紫单，不可替检）", scheme_names)
+    assert matched == "40~40岁以上 - 男", "Duplicate age range prefix should not block matching."
+
+
 def run_all():
     """运行全部测试用例"""
     test_single_scheme_parsing()
@@ -206,12 +256,16 @@ def run_all():
     print("PASS: noisy title parsing behaves as expected.")
     test_order_code_triggers_single_scheme()
     print("PASS: order-code payload treated as single scheme.")
+    test_group_name_table_uses_group_name_as_title()
+    print("PASS: group-name table payload uses the group name as title.")
     test_find_best_match_ignores_noise_parentheses()
     print("PASS: best-match ignores noise-only parentheses.")
     test_find_best_match_preserves_category_parentheses()
     print("PASS: best-match preserves category parentheses.")
     test_find_best_match_handles_unclosed_noise_parentheses()
     print("PASS: best-match handles unclosed noise parentheses.")
+    test_find_best_match_normalizes_duplicate_age_range()
+    print("PASS: best-match normalizes duplicate age ranges.")
 
 
 if __name__ == "__main__":

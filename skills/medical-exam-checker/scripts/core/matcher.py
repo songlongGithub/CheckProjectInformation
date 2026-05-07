@@ -135,6 +135,7 @@ def _remove_noise_parentheses(text: str) -> str:
 def _normalize_for_precise_matching(text: str) -> str:
     if not text:
         return ""
+    text = re.sub(r"(\d+)\s*[~～\-]\s*\1(?=岁)", r"\1", text)
     processed = re.sub(r"[（()\-（）、_]", " ", text)
     components = [
         r"方案[一二三四五六七八九十]+",

@@ -149,13 +149,24 @@ class ExcelParser:
         for sheet_name in self.sheet_names_in_order:
             actual_name = self.sheet_name_alias_map.get(sheet_name, sheet_name)
             logger.info(f"Processing sheet: {sheet_name}")
+
+            tmp_df = pd.read_excel(xls, sheet_name=actual_name, nrows=1)
+            num_cols = len(tmp_df.columns)
+            use_cols = [0, 1, 2, 4, 5]
+            valid_use_cols = [c for c in use_cols if c < num_cols]
+            all_names = ["项目名称", "子项目", "内容明细", "男", "女"]
+            actual_names = [all_names[i] for i in range(len(valid_use_cols))]
+
             df = pd.read_excel(
                 xls,
                 sheet_name=actual_name,
                 header=None,
-                usecols=[0, 1, 2, 4, 5],
-                names=["项目名称", "子项目", "内容明细", "男", "女"],
+                usecols=valid_use_cols,
+                names=actual_names,
             )
+            for col_name in all_names:
+                if col_name not in df.columns:
+                    df[col_name] = ""
             projects = self._clean_and_filter_projects(df, sheet_name)
             self.schemes_data[sheet_name] = projects
             logger.info(f"Sheet '{sheet_name}' parsed: {len(projects)} valid projects.")
