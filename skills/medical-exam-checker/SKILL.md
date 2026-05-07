@@ -7,8 +7,8 @@ metadata:
   what: 解析 Excel 方案分类 + 百度 OCR 识图抽项 + 三层匹配（规则/模糊/LLM）+ 父子复合项双向展开 + 输出 4 种格式报告（完整 JSON / 完整 Markdown / 精简差异 Markdown / 聊天 bot 紧凑文本）。
   how: Python + pandas/openpyxl 解析 Excel（状态机按男/女未婚/女已婚分类）；百度 OCR accurate_basic 识字；fuzzywuzzy 模糊匹配（阈值 85）；Gemini 2.0 Flash / Claude Haiku 语义兜底（可关）；composites 规则双向处理"父项-子项"业务包含关系。
   results: 逐方案输出匹配 / 缺失 / 多余，完美匹配免复核，部分匹配只列差异行；match_type 字段可追溯（exact / alias / fuzzy / composite / llm）。
-  version: 1.0.9
-  updated: '2026-04-22'
+  version: 1.1.0
+  updated: '2026-05-07'
   jtbd-1: 体检机构把订单截图发给我后，我要核对是否和已签的 Excel 方案一致，希望自动出差异报告，我只看需要人工判断的条目。
   jtbd-2: 聊天机器人收到体检订单图片，要立即输出"完美 / 需复核 / 未匹配方案"三类摘要，紧凑且无 markdown 表格（IM 渲染兼容）。
   audit:
