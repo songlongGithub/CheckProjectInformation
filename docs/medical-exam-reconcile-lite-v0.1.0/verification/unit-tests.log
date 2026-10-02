@@ -1,0 +1,36 @@
+test_alias_transitive (test_reconcile.ReconcileTests.test_alias_transitive) ... ok
+test_all_fail_text (test_reconcile.ReconcileTests.test_all_fail_text) ... ok
+test_composite_no_evidence_not_success (test_reconcile.ReconcileTests.test_composite_no_evidence_not_success) ... ok
+test_composite_partial_not_success (test_reconcile.ReconcileTests.test_composite_partial_not_success) ... ok
+test_duplicate_consumption (test_reconcile.ReconcileTests.test_duplicate_consumption) ... ok
+test_empty_items (test_reconcile.ReconcileTests.test_empty_items) ... ok
+test_empty_words (test_reconcile.ReconcileTests.test_empty_words) ... OCR payload has empty words_result.
+ok
+test_exact (test_reconcile.ReconcileTests.test_exact) ... ok
+test_extra (test_reconcile.ReconcileTests.test_extra) ... ok
+test_formula_without_cache_rejected (test_reconcile.ReconcileTests.test_formula_without_cache_rejected) ... ok
+test_fuzzy_review (test_reconcile.ReconcileTests.test_fuzzy_review) ... ok
+test_invalid_rules (test_reconcile.ReconcileTests.test_invalid_rules) ... ok
+test_invalid_words (test_reconcile.ReconcileTests.test_invalid_words) ... ok
+test_invalid_zip_cli (test_reconcile.ReconcileTests.test_invalid_zip_cli) ... ok
+test_missing (test_reconcile.ReconcileTests.test_missing) ... ok
+test_missing_sheets_cli (test_reconcile.ReconcileTests.test_missing_sheets_cli) ... ok
+test_mixed_batch_preserves_failure (test_reconcile.ReconcileTests.test_mixed_batch_preserves_failure) ... ok
+test_no_documents (test_reconcile.ReconcileTests.test_no_documents) ... ok
+test_nonstring_items (test_reconcile.ReconcileTests.test_nonstring_items) ... ok
+test_ocr_error (test_reconcile.ReconcileTests.test_ocr_error) ... ok
+test_offline_cli_and_exitcode (test_reconcile.ReconcileTests.test_offline_cli_and_exitcode) ... ok
+test_output_collision (test_reconcile.ReconcileTests.test_output_collision) ... ok
+test_ratio_lcs (test_reconcile.ReconcileTests.test_ratio_lcs) ... ok
+test_title_noise (test_reconcile.ReconcileTests.test_title_noise) ... ok
+test_title_tie (test_reconcile.ReconcileTests.test_title_tie) ... ok
+test_title_wrong_gender (test_reconcile.ReconcileTests.test_title_wrong_gender) ... ok
+test_uncertainty_propagates (test_reconcile.ReconcileTests.test_uncertainty_propagates) ... ok
+test_utf16_dtd_rejected (test_reconcile.ReconcileTests.test_utf16_dtd_rejected) ... ok
+test_xlsx_real_columns (test_reconcile.ReconcileTests.test_xlsx_real_columns) ... ok
+test_zero_scheme_rejected (test_reconcile.ReconcileTests.test_zero_scheme_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 30 tests in 0.009s
+
+OK

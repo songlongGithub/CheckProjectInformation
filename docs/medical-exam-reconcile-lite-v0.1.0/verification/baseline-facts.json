@@ -1,0 +1,29 @@
+{
+  "source_commit": "1392fcc2cf9451467b40f0be4e840a274967a481",
+  "source_unchanged": true,
+  "test_dependencies": {
+    "pandas": "2.2.3",
+    "openpyxl": "3.1.5",
+    "fuzzywuzzy": "0.18.0",
+    "python-Levenshtein": "0.23.0",
+    "requests": "2.34.2",
+    "pytest": "9.1.1"
+  },
+  "assertion_tests": 11,
+  "assertions": 29,
+  "assertion_tests_passed": 11,
+  "print_only_demonstrations_completed": 4,
+  "online_update_tests_not_run": [
+    "test_github_update.py",
+    "test_online_update.py",
+    "test_update_server.py"
+  ],
+  "old_skill_cli_not_run": "Import-time bootstrap and network clients are outside the offline baseline",
+  "baidu_or_external_llm_called": false,
+  "credential_reads": false,
+  "old_excel_core_schemes": 50,
+  "old_excel_core_item_occurrences": 1650,
+  "corrected_reference_schemes": 68,
+  "corrected_reference_item_occurrences": 2413,
+  "reference_change": "Only test-time removal of nrows=1 from pandas column-width probe; upstream files unchanged"
+}
